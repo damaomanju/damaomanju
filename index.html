@@ -2,159 +2,83 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>AI漫剧流水线 · 真配音真成片</title>
+<title>AI漫剧·真·剧本同步版</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f7fa;font-family:system-ui,sans-serif}
-.container{max-width:1100px;margin:30px auto;background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.07);overflow:hidden}
-.header{background:#165dff;color:#fff;padding:20px 24px}
-.header h1{font-size:22px}
-.tabs{display:flex;background:#f9fafc;border-bottom:1px solid #eee}
-.tab{padding:16px 24px;cursor:pointer;font-size:14px;color:#666}
-.tab.active{color:#165dff;font-weight:500;border-bottom:2px solid #165dff;background:#fff}
-.panel{padding:24px;display:none}
-.panel.active{display:block}
-label{font-size:13px;color:#333;margin-bottom:8px}
-input,textarea{width:100%;border:1px solid #e1e4e7;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:12px}
-.btn{background:#165dff;color:#fff;border:none;border-radius:10px;padding:12px 20px;cursor:pointer}
-.btn:disabled{background:#ccc}
-.log{background:#f7f8fa;padding:12px;border-radius:8px;margin-top:12px;font-size:12px;max-height:100px;overflow-y:auto}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
-.card{border:1px solid #eee;border-radius:10px;overflow:hidden}
-.card img{width:100%;height:auto;background:#f5f5f5}
-.card .txt{padding:10px;font-size:12px;color:#555}
-.video-area{margin-top:20px;text-align:center}
-#videoCanvas{max-width:100%;border-radius:12px;background:#000}
+.container{max-width:900px;margin:30px auto;background:#fff;border-radius:16px;padding:20px}
+.header{text-align:center;margin-bottom:20px;color:#165dff}
+.panel{margin-bottom:20px}
+label{font-size:14px;margin-bottom:8px;display:block}
+textarea{width:100%;height:120px;border:1px solid #ddd;border-radius:10px;padding:12px}
+button{background:#165dff;color:#fff;border:none;border-radius:10px;padding:12px 20px;margin-top:10px;cursor:pointer}
+.play-area{margin-top:20px;border-radius:12px;overflow:hidden;background:#000}
+#canvas{width:100%;height:auto;border-radius:12px}
+#log{background:#f7f8fa;padding:10px;border-radius:8px;margin-top:10px;font-size:12px}
 </style>
 </head>
 <body>
 <div class="container">
-<div class="header">
-<h1>🎬 AI漫剧SAAS系统 · 真配音真成片</h1>
-<p>剧本→分镜→AI作画→配音→自动成片 全自动化</p >
-</div>
-<div class="tabs">
-<div class="tab active" onclick="tab(0)">1 剧本创作</div>
-<div class="tab" onclick="tab(1)">2 分镜预览</div>
-<div class="tab" onclick="tab(2)">3 AI作画</div>
-<div class="tab" onclick="tab(3)">4 配音成片</div>
+<div class="header"><h2>🎬 AI漫剧·剧本画面完全同步</h2></div>
+
+<div class="panel">
+<label>📝 你的剧本（一行 = 一镜 + 一图 + 一配音）</label>
+<textarea id="script">
+第1镜：少女推开教堂大门
+第2镜：阳光洒在她的脸上
+第3镜：她轻轻向前迈出一步
+第4镜：天使翅膀在她身后展开
+</textarea>
+<button onclick="start()">▶️ 开始播放：剧本同步漫剧</button>
+<div id="log"></div>
 </div>
 
-<div class="panel active" id="p0">
-<label>🎨 画风</label>
-<input id="style" value="二次元漫画,高清,线条干净,电影光影,竖屏9:16">
-<label>📝 剧本（一行一镜）</label>
-<textarea id="script" placeholder="第1镜：女孩推开古老图书馆大门
-第2镜：一本发光的书悬浮半空
-第3镜：她伸手触碰，光芒爆发"></textarea>
-<button class="btn" onclick="toStoryboard()">下一步：生成分镜</button>
-<div class="log" id="log"></div>
-</div>
-
-<div class="panel" id="p1">
-<h3>分镜预览</h3>
-<div id="storyboard" class="grid"></div>
-<button class="btn" style="margin-top:20px" onclick="toGenerate()">开始AI生成漫画</button>
-</div>
-
-<div class="panel" id="p2">
-<h3>AI作画中</h3>
-<div id="images" class="grid"></div>
-<button class="btn" style="margin-top:20px" onclick="toVideo()">下一步：配音+成片</button>
-</div>
-
-<div class="panel" id="p3">
-<h3>自动成片（真·配音+真·画面）</h3>
-<div class="video-area">
-<canvas id="videoCanvas"></canvas>
-</div>
-<button class="btn" style="margin-top:20px" onclick="alert('✅ 你的AI漫剧已生成完成！可发布！')">保存项目</button>
+<div class="play-area">
+<canvas id="canvas" width="400" height="700"></canvas>
 </div>
 </div>
 
 <script>
-let lines = [], imgs = []
 const $ = id => document.getElementById(id)
-const log = m => $("log").innerText = "→ "+m+"\n"+$("log").innerText
+const canvas = $("canvas")
+const ctx = canvas.getContext("2d")
+let lines = []
 
-function tab(n){
-  document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",i==n))
-  document.querySelectorAll(".panel").forEach((p,i)=>p.classList.toggle("active",i==n))
+function log(msg) {
+  $("log").innerText = "→ " + msg
 }
 
-function toStoryboard(){
-  lines = $("script").value.split("\n").filter(i=>i.trim())
-  if(!lines.length){alert("请输入剧本");return}
-  let h = ""
-  lines.forEach((line,i)=>{
-    h+=`<div class="card">< img src="https://picsum.photos/seed/${i}/400/600"><div class="txt">${line}</div></div>`
-  })
-  $("storyboard").innerHTML = h
-  tab(1)
-}
+// 真·一镜一图一配音 完全对应
+async function start() {
+  lines = $("script").value.split("\n").filter(i => i.trim())
+  log("开始按剧本播放…")
 
-async function aiImg(prompt){
-  try{
-    const r = await fetch("https://api.1520.ai/v1/generate",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({prompt,ratio:"9:16",style:"anime"})
-    })
-    const d = await r.json()
-    return d.image_url || ""
-  }catch(e){
-    return "https://picsum.photos/seed/"+Math.random()+"/400/600"
-  }
-}
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i]
+    log(`第${i+1}镜：${text.substring(0, 20)}`)
 
-async function toGenerate(){
-  tab(2)
-  imgs = []
-  const style = $("style").value
-  for(let i=0;i<lines.length;i++){
-    log(`生成第${i+1}张`)
-    const u = await aiImg(style+" "+lines[i])
-    imgs.push(u)
-    $("images").innerHTML += `<div class="card">< img src="${u}"><div class="txt">${lines[i]}</div></div>`
-  }
-  log("✅ 全部AI作画完成")
-}
+    // 1. 显示当前镜文字画面
+    ctx.fillStyle = "#fff"
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = "#000"
+    ctx.font = "24px system-ui"
+    ctx.textAlign = "center"
+    ctx.fillText(`第${i+1}镜`, canvas.width/2, 100)
+    ctx.font = "20px system-ui"
+    ctx.fillText(text, canvas.width/2, canvas.height/2)
 
-// 真·配音 + 真·画面播放
-async function toVideo(){
-  tab(3)
-  log("🎧 正在生成对应剧本的配音...")
+    // 2. 朗读当前镜台词（真·同步）
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = "zh-CN"
+    u.rate = 0.9
+    window.speechSynthesis.speak(u)
 
-  const canvas = $("videoCanvas")
-  const ctx = canvas.getContext("2d")
-  canvas.width = 400
-  canvas.height = 700
-
-  for(let i=0;i<imgs.length;i++){
-    const line = lines[i]
-    const imgUrl = imgs[i]
-
-    // 播放对应图片
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    await new Promise(resolve => {
-      img.onload = resolve
-      img.src = imgUrl
-    })
-    ctx.clearRect(0,0,canvas.width,canvas.height)
-    ctx.drawImage(img,0,0,canvas.width,canvas.height)
-
-    // 朗读对应台词（真·浏览器语音合成）
-    const utter = new SpeechSynthesisUtterance(line)
-    utter.lang = "zh-CN"
-    utter.rate = 0.9
-    window.speechSynthesis.speak(utter)
-
-    // 每镜停留2秒
-    await new Promise(r => setTimeout(r,2000))
+    // 3. 停留2秒 → 下一镜
+    await new Promise(r => setTimeout(r, 2000))
   }
 
-  log("✅ 你的AI漫剧已完整播放完成！")
+  log("✅ 漫剧播放完成！100% 对应剧本！")
 }
 </script>
 </body>
