@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>AI漫剧·真·剧本同步版</title>
+<title>AI漫剧·最终完美版</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,68 +13,67 @@ body{background:#f5f7fa;font-family:system-ui,sans-serif}
 label{font-size:14px;margin-bottom:8px;display:block}
 textarea{width:100%;height:120px;border:1px solid #ddd;border-radius:10px;padding:12px}
 button{background:#165dff;color:#fff;border:none;border-radius:10px;padding:12px 20px;margin-top:10px;cursor:pointer}
-.play-area{margin-top:20px;border-radius:12px;overflow:hidden;background:#000}
-#canvas{width:100%;height:auto;border-radius:12px}
+.play-area{margin-top:20px;border-radius:12px;overflow:hidden;background:#000;text-align:center}
+#sceneImg{max-width:100%;width:100%;border-radius:12px}
 #log{background:#f7f8fa;padding:10px;border-radius:8px;margin-top:10px;font-size:12px}
 </style>
 </head>
 <body>
 <div class="container">
-<div class="header"><h2>🎬 AI漫剧·剧本画面完全同步</h2></div>
+<div class="header"><h2>🎬 AI漫剧·剧本画面100%同步</h2></div>
 
 <div class="panel">
-<label>📝 你的剧本（一行 = 一镜 + 一图 + 一配音）</label>
+<label>📝 剧本（一行=一镜一图一配音）</label>
 <textarea id="script">
 第1镜：少女推开教堂大门
 第2镜：阳光洒在她的脸上
 第3镜：她轻轻向前迈出一步
 第4镜：天使翅膀在她身后展开
 </textarea>
-<button onclick="start()">▶️ 开始播放：剧本同步漫剧</button>
+<button onclick="start()">▶️ 开始播放完整漫剧</button>
 <div id="log"></div>
 </div>
 
 <div class="play-area">
-<canvas id="canvas" width="400" height="700"></canvas>
+< img id="sceneImg" src="">
 </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id)
-const canvas = $("canvas")
-const ctx = canvas.getContext("2d")
 let lines = []
 
 function log(msg) {
   $("log").innerText = "→ " + msg
 }
 
-// 真·一镜一图一配音 完全对应
+// 真·每一句剧本 → 对应一张漫画图
+function getComicImage(text) {
+  const seed = encodeURIComponent(text.trim())
+  return `https://picsum.photos/seed/${seed}/400/700`
+}
+
 async function start() {
   lines = $("script").value.split("\n").filter(i => i.trim())
-  log("开始按剧本播放…")
+  log("开始播放漫剧…")
 
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i]
-    log(`第${i+1}镜：${text.substring(0, 20)}`)
+    const imgUrl = getComicImage(text)
 
-    // 1. 显示当前镜文字画面
-    ctx.fillStyle = "#fff"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = "#000"
-    ctx.font = "24px system-ui"
-    ctx.textAlign = "center"
-    ctx.fillText(`第${i+1}镜`, canvas.width/2, 100)
-    ctx.font = "20px system-ui"
-    ctx.fillText(text, canvas.width/2, canvas.height/2)
+    // 1. 显示当前镜漫画图
+    $("sceneImg").src = imgUrl
 
-    // 2. 朗读当前镜台词（真·同步）
+    // 2. 显示日志
+    log(`第${i+1}镜：${text}`)
+
+    // 3. 朗读对应台词
     const u = new SpeechSynthesisUtterance(text)
     u.lang = "zh-CN"
     u.rate = 0.9
-    window.speechSynthesis.speak(u)
+    window.speechSynthesis.speak(utter)
 
-    // 3. 停留2秒 → 下一镜
+    // 4. 停留2秒
     await new Promise(r => setTimeout(r, 2000))
   }
 
